@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>TJE • Controle de Cartões — Consolidação CadÚnico × DB2</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Se existir, esse CSS (em /static/index.css) sobrescreve detalhes finos -->
+  <link rel="stylesheet" href="/static/index.css">
+
+  <style>
+    :root {
+      --bg: #f4f6fb;
+      --bg-card: #ffffff;
+      --bg-card-alt: #f9fafc;
+      --border-subtle: #e0e6f0;
+      --primary: #2563eb;
+      --primary-soft: #dbeafe;
+      --primary-strong: #1d4ed8;
+      --accent: #10b981;
+      --accent-soft: #d1fae5;
+      --danger: #ef4444;
+      --danger-soft: #fee2e2;
+      --warning: #f59e0b;
+      --warning-soft: #fef3c7;
+      --text-main: #0f172a;
+      --text-soft: #6b7280;
+      --text-invert: #f9fafb;
+      --shadow-soft: 0 10px 30px rgba(15, 23, 42, 0.08);
+      --radius-lg: 18px;
+    }
+
+    [data-theme="dark"] {
+      --bg: #020617;
+      --bg-card: #020617;
+      --bg-card-alt: #0b1120;
+      --border-subtle: #1e293b;
+      --primary: #60a5fa;
+      --primary-soft: #1d4ed8;
+      --primary-strong: #3b82f6;
+      --accent: #34d399;
+      --accent-soft: #064e3b;
+      --danger: #f97373;
+      --danger-soft: #7f1d1d;
+      --warning: #fbbf24;
+      --warning-soft: #78350f;
+      --text-main: #e5e7eb;
+      --text-soft: #9ca3af;
+      --text-invert: #0f172a;
+      --shadow-soft: 0 10px 40px rgba(15, 23, 42, 0.75);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top left, #e0f2fe 0, var(--bg) 40%) fixed;
+      color: var(--text-main);
+    }
+
+    .app-shell {
+      min-height: 100vh;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px 16px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    header.app-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .brand-block {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .brand-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: var(--primary-strong);
+    }
+
+    .brand-subtitle {
+      font-size: 0.9rem;
+      color: var(--text-soft);
+    }
+
+    .theme-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      background: rgba(15, 23, 42, 0.03);
+      cursor: pointer;
+      font-size: 0.8rem;
+      user-select: none;
+    }
+
+    .theme-toggle span.icon {
+      font-size: 1rem;
+    }
+
+    main {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.8fr);
+      gap: 18px;
+    }
+
+    @media (max-width: 880px) {
+      .grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .card {
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-soft);
+      padding: 18px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .card-title span.emoji {
+      font-size: 1.1rem;
+    }
+
+    .card-subtitle {
+      font-size: 0.8rem;
+      color: var(--text-soft);
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+
+    label {
+      font-size: 0.8rem;
+      color: var(--text-soft);
+    }
+
+    input[type="text"] {
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      padding: 8px 12px;
+      font-size: 0.9rem;
+      outline: none;
+      background: var(--bg-card-alt);
+      color: var(--text-main);
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.25);
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    button {
+      font-family: inherit;
+      font-size: 0.85rem;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      padding: 7px 14px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    button span.emoji {
+      font-size: 1rem;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+      color: #f9fafb;
+    }
+
+    .btn-secondary {
+      background: var(--bg-card-alt);
+      border-color: var(--border-subtle);
+      color: var(--text-main);
+    }
+
+    .btn-outline {
+      background: transparent;
+      border-color: var(--border-subtle);
+      color: var(--text-soft);
+    }
+
+    .btn-warning {
+      background: var(--warning);
+      color: #111827;
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: #f9fafb;
+    }
+
+    .status-pill {
+      font-size: 0.75rem;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-pill[data-status="running"] {
+      background: var(--warning-soft);
+      color: var(--warning);
+    }
+
+    .status-pill[data-status="error"] {
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    pre {
+      margin: 0;
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.78rem;
+      background: var(--bg-card-alt);
+      border-radius: 12px;
+      padding: 8px 10px;
+      max-height: 280px;
+      overflow: auto;
+      border: 1px dashed var(--border-subtle);
+    }
+
+    .log-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      color: var(--text-soft);
+    }
+
+    .small-muted {
+      font-size: 0.76rem;
+      color: var(--text-soft);
+    }
+
+    footer {
+      margin-top: 8px;
+      font-size: 0.75rem;
+      color: var(--text-soft);
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* Modal CPFs descartados */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+
+    .modal-backdrop.show {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--bg-card);
+      border-radius: 20px;
+      max-width: 720px;
+      width: 92%;
+      max-height: 85vh;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(15, 23, 42, 0.5);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .modal-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .modal-title span.emoji {
+      font-size: 1.2rem;
+    }
+
+    .modal-body {
+      padding: 12px 16px 14px;
+      overflow: auto;
+      font-size: 0.82rem;
+    }
+
+    .modal-section-title {
+      font-weight: 600;
+      margin: 8px 0 2px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      background: var(--primary-soft);
+      color: var(--primary-strong);
+    }
+
+    .tag-warning {
+      background: var(--warning-soft);
+      color: var(--warning);
+    }
+
+    ul.sample-names {
+      padding-left: 20px;
+      margin: 4px 0 8px;
+      max-height: 160px;
+      overflow: auto;
+    }
+
+    ul.sample-names li {
+      margin-bottom: 2px;
+    }
+
+    .close-btn {
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-card-alt);
+      font-size: 0.8rem;
+      cursor: pointer;
+      padding: 4px 8px;
+    }
+
+    /* Botões extras (CPFs & Estatísticas) */
+    .btn-cpf {
+      background: var(--warning-soft);
+      color: var(--warning);
+      border-color: var(--warning);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="brand-block">
+        <div class="brand-title">TJE • Controle de Cartões</div>
+        <div class="brand-subtitle">
+          Consolidação operacional — cruzamento CadÚnico × DB2 (alunos elegíveis)
+        </div>
+      </div>
+      <button id="theme-toggle" class="theme-toggle" type="button">
+        <span class="icon">🌞</span>
+        <span id="theme-label">Claro</span>
+      </button>
+    </header>
+
+    <main>
+      <!-- Linha principal: parâmetros + logs/métricas -->
+      <section class="grid">
+        <!-- Coluna esquerda: parâmetros e ações -->
+        <article class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">
+                <span class="emoji">🧮</span>
+                Processamento • Consolidação &amp; Regras
+              </div>
+              <div class="card-subtitle">
+                DB2 (alunos) + CadÚnico (renda) + regras do programa
+              </div>
+            </div>
+            <div id="status-pill" class="status-pill" data-status="idle">
+              <span class="status-dot"></span>
+              <span id="status-text">Aguardando</span>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label for="mesano">Período (MESANO — ex.: 202507)</label>
+            <input type="text" id="mesano" maxlength="6" placeholder="AAAAmm (ex.: 202511)" />
+          </div>
+
+          <div class="button-row">
+            <button id="btn-processar" class="btn-primary" type="button">
+              <span class="emoji">🧮</span>
+              Processar Entradas
+            </button>
+
+            <button id="btn-outputs" class="btn-secondary" type="button">
+              <span class="emoji">📂</span>
+              Listar Saídas
+            </button>
+
+            <button id="btn-test-db2" class="btn-outline" type="button">
+              Testar DB2
+            </button>
+
+            <button id="btn-cpf-modal" class="btn-cpf btn-outline" type="button">
+              <span class="emoji">🧾</span>
+              CPFs descartados
+            </button>
+          </div>
+
+          <div class="field-group">
+            <label>Base CadÚnico (Parquet / CSV / XLSX)</label>
+            <input type="file" id="cadunico-file" />
+            <div class="button-row" style="margin-top:4px;">
+              <button id="btn-preview-cad" class="btn-secondary" type="button">
+                Pré-visualizar base
+              </button>
+            </div>
+            <div id="cadunico-status" class="small-muted">
+              Nenhum arquivo enviado nesta sessão.
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label>Prévia rápida da base CadÚnico (primeiras linhas)</label>
+            <pre id="cad-preview">(nenhuma pré-visualização ainda)</pre>
+          </div>
+
+          <div class="small-muted">
+            Dica: o processamento usa a base CadÚnico carregada pelo backend (arquivo Parquet).
+            Se você trocar de arquivo, o pipeline deste app já está preparado para ler o novo caminho.
+          </div>
+        </article>
+
+        <!-- Coluna direita: logs + métricas -->
+        <article class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">
+                <span class="emoji">📜</span>
+                Log de Processamento
+              </div>
+              <div class="card-subtitle">
+                Logs técnicos por sessão (pipeline completo F1→F6)
+              </div>
+            </div>
+          </div>
+
+          <div class="log-toolbar">
+            <span id="session-label" class="small-muted">
+              Sessão: (nenhuma em andamento)
+            </span>
+            <button id="btn-clear-log" class="btn-outline" type="button">Limpar log</button>
+          </div>
+          <pre id="log-output">Aguardando processamento…</pre>
+
+          <div class="field-group">
+            <label>Métricas (resumo da sessão)</label>
+            <pre id="metrics-output">{}</pre>
+          </div>
+
+          <div class="small-muted">
+            Quando a fase 6/6 estiver concluída, os arquivos <em>MapeadosTJEprojeto_*.csv/xlsx</em>
+            e o CSV de CPFs inválidos (se existirem) são salvos em <code>outputs/</code> e também
+            expostos via API para download.
+          </div>
+        </article>
+      </section>
+
+      <footer>
+        <div>
+          <strong>Como o cruzamento funciona (resumo):</strong>
+          <br />
+          1) Busca alunos no DB2 para o MESANO informado ·
+          2) Carrega CadÚnico filtrando renda familiar per capita (≤ 660,00) ·
+          3) Normaliza CPFs (remove máscara, zeros à esquerda são preservados) ·
+          4) Cruza por CPF (documentos_alunos × CadÚnico) ·
+          5) Gera planilhas com mapeados elegíveis e CSV com CPFs sem dígitos.
+        </div>
+        <div>
+          <strong>Observação sobre CPFs descartados:</strong><br />
+          Registros sem dígitos de CPF no CadÚnico <em>não são excluídos da base original</em>;
+          apenas não entram no cruzamento atual. O CSV de inválidos serve como insumo de saneamento.
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <!-- Modal CPFs descartados -->
+  <div id="cpf-modal-backdrop" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span class="emoji">🧾</span>
+          CPFs descartados (diagnóstico)
+        </div>
+        <button type="button" class="close-btn" id="cpf-modal-close">Fechar</button>
+      </div>
+      <div class="modal-body">
+        <div>
+          <div class="modal-section-title">
+            Resumo de CPFs descartados
+          </div>
+          <hr />
+          <p id="cpf-summary-lines">
+            Documentos alunos (DB2) inválidos: <strong>não informado</strong><br />
+            CadÚnico inválidos (sem dígitos de CPF): <strong>não informado</strong>
+          </p>
+
+          <p id="cpf-csv-link-text">
+            CSV detalhado de inválidos (CadÚnico):<br />
+            <span class="small-muted">
+              ainda não informado pelo backend nesta sessão.
+            </span>
+          </p>
+
+          <div class="modal-section-title" style="margin-top:10px;">
+            Amostra de nomes sem CPF válido (CadÚnico)
+            <span class="tag tag-warning">Amostra de sessão</span>
+          </div>
+          <ul id="cpf-sample-names" class="sample-names">
+            <li class="small-muted">Nenhuma amostra de nomes foi informada pelo backend.</li>
+          </ul>
+        </div>
+
+        <hr />
+
+        <div>
+          <div class="modal-section-title">Leitura técnica (o que esse painel mostra)</div>
+          <p>
+            O pipeline registra no backend, para cada sessão, quantos registros foram descartados
+            por falta de CPF com dígitos (após remover pontos, traços e espaços). O app grava:
+          </p>
+          <ul>
+            <li><code>invalid_cpf_docs_count</code> – quantidade de alunos (DB2) cujo CPF não possuía dígitos.</li>
+            <li><code>invalid_cpf_cad_count</code> – quantidade de pessoas no CadÚnico sem dígitos de CPF.</li>
+            <li><code>invalid_cpf_cad_csv</code> – caminho do CSV gerado em <code>outputs/</code> com o detalhamento.
+            </li>
+            <li><code>invalid_cpf_cad_sample_names</code> – amostra de nomes retornados pelo backend para facilitar a
+              análise.</li>
+          </ul>
+          <p>
+            Esses campos são atualizados ao final da fase de limpeza de CPFs no CadÚnico. A ideia é
+            que o setor responsável possa usar o CSV de inválidos como base de saneamento, enquanto
+            o cruzamento principal segue trabalhando apenas com CPFs que possuem dígitos.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================
+    //   THEME (CLARO/ESCURO)
+    // =========================
+    (function () {
+      const root = document.documentElement;
+      const toggleBtn = document.getElementById("theme-toggle");
+      const label = document.getElementById("theme-label");
+
+      function setTheme(theme) {
+        root.setAttribute("data-theme", theme);
+        if (theme === "dark") {
+          toggleBtn.querySelector(".icon").textContent = "🌙";
+          label.textContent = "Escuro";
+        } else {
+          toggleBtn.querySelector(".icon").textContent = "🌞";
+          label.textContent = "Claro";
+        }
+      }
+
+      const saved = window.localStorage.getItem("tje-theme");
+      if (saved === "dark" || saved === "light") {
+        setTheme(saved);
+      } else {
+        setTheme("light");
+      }
+
+      toggleBtn.addEventListener("click", () => {
+        const current = root.getAttribute("data-theme") || "light";
+        const next = current === "light" ? "dark" : "light";
+        setTheme(next);
+        window.localStorage.setItem("tje-theme", next);
+      });
+    })();
+
+    // =========================
+    //   ESTADO GLOBAL
+    // =========================
+    let currentSessionId = null;
+    let currentMesano = null;
+    let logPollTimer = null;
+    let metricsPollTimer = null;
+
+    const statusPill = document.getElementById("status-pill");
+    const statusText = document.getElementById("status-text");
+    const logOutput = document.getElementById("log-output");
+    const metricsOutput = document.getElementById("metrics-output");
+    const sessionLabel = document.getElementById("session-label");
+
+    const cadStatus = document.getElementById("cadunico-status");
+    const cadPreview = document.getElementById("cad-preview");
+
+    // Modal
+    const cpfModalBackdrop = document.getElementById("cpf-modal-backdrop");
+    const cpfModalOpenBtn = document.getElementById("btn-cpf-modal");
+    const cpfModalCloseBtn = document.getElementById("cpf-modal-close");
+    const cpfSummaryLines = document.getElementById("cpf-summary-lines");
+    const cpfCsvLinkText = document.getElementById("cpf-csv-link-text");
+    const cpfSampleList = document.getElementById("cpf-sample-names");
+
+    function setStatus(status, text) {
+      statusPill.dataset.status = status;
+      statusText.textContent = text;
+    }
+
+    function appendLogLine(line) {
+      if (!line) return;
+      if (logOutput.textContent.trim() === "Aguardando processamento…") {
+        logOutput.textContent = "";
+      }
+      logOutput.textContent += line + "\n";
+      logOutput.scrollTop = logOutput.scrollHeight;
+    }
+
+    function clearTimers() {
+      if (logPollTimer) window.clearInterval(logPollTimer);
+      if (metricsPollTimer) window.clearInterval(metricsPollTimer);
+      logPollTimer = null;
+      metricsPollTimer = null;
+    }
+
+    // =========================
+    //   CHAMADAS API
+    // =========================
+    async function startProcessamento() {
+      const mesanoInput = document.getElementById("mesano");
+      const mesano = (mesanoInput.value || "").trim();
+
+      if (!/^\d{6}$/.test(mesano)) {
+        alert("Informe MESANO no formato AAAAMM (ex.: 202511).");
+        return;
+      }
+
+      clearTimers();
+      logOutput.textContent = "Iniciando processamento…\n";
+      metricsOutput.textContent = "{}";
+      currentMesano = mesano;
+      sessionLabel.textContent = "Sessão: em inicialização…";
+      setStatus("running", "Processando");
+
+      try {
+        const resp = await fetch("/api/processar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mesano: mesano,
+            params: { usar_duckdb: true }
+          })
+        });
+
+        const data = await resp.json();
+        if (!resp.ok || !data.ok) {
+          setStatus("error", "Erro ao iniciar");
+          appendLogLine("Falha ao chamar /api/processar: " + (data.error || resp.statusText));
+          return;
+        }
+
+        currentSessionId = data.session_id;
+        sessionLabel.textContent = "Sessão: " + currentSessionId;
+        appendLogLine("*** Pipeline iniciado, sessão = " + currentSessionId + " ***");
+
+        // Agendar polling:
+        logPollTimer = window.setInterval(fetchLogs, 3000);
+        metricsPollTimer = window.setInterval(fetchMetrics, 5000);
+      } catch (err) {
+        console.error(err);
+        setStatus("error", "Erro na requisição");
+        appendLogLine("Erro de rede ao iniciar processamento: " + err);
+      }
+    }
+
+    async function fetchLogs() {
+      if (!currentSessionId) return;
+      try {
+        const resp = await fetch(`/api/logs/${encodeURIComponent(currentSessionId)}`);
+        const data = await resp.json();
+        if (data && data.logs) {
+          logOutput.textContent = data.logs.join("\n");
+          logOutput.scrollTop = logOutput.scrollHeight;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function fetchMetrics() {
+      if (!currentSessionId) return;
+      try {
+        const resp = await fetch(`/api/metrics/${encodeURIComponent(currentSessionId)}`);
+        const data = await resp.json();
+        if (!data.ok) return;
+
+        const m = data.metrics || {};
+        metricsOutput.textContent = JSON.stringify(m, null, 2);
+
+        if (m.status === "done") {
+          setStatus("idle", "Concluído");
+          clearTimers();
+        } else if (m.status === "error") {
+          setStatus("error", "Erro");
+          clearTimers();
+        } else if (m.status === "running") {
+          setStatus("running", `Fase ${m.fase || "?"}/6`);
+        }
+
+        // Atualiza painel/modal de CPFs descartados
+        updateCpfDiagnosticFromMetrics(m);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function listarSaidas() {
+      const mesanoInput = document.getElementById("mesano");
+      const mesano = (mesanoInput.value || "").trim();
+      if (!/^\d{6}$/.test(mesano)) {
+        alert("Informe MESANO no formato AAAAMM (ex.: 202511) para listar saídas.");
+        return;
+      }
+
+      try {
+        const resp = await fetch(`/api/outputs/${encodeURIComponent(mesano)}`);
+        const data = await resp.json();
+        if (!data.ok) {
+          alert("Erro ao listar saídas: " + (data.error || "desconhecido"));
+          return;
+        }
+
+        const files = data.files || [];
+        if (!files.length) {
+          alert("Nenhum arquivo encontrado em outputs/ para MESANO " + mesano);
+          return;
+        }
+
+        let msg = `Arquivos para MESANO ${mesano}:\n\n`;
+        for (const f of files) {
+          msg += `• ${f.name}\n`;
+        }
+        msg += "\nUse o botão de download (ou acesse /api/download?path=...) para baixar.";
+        alert(msg);
+      } catch (err) {
+        console.error(err);
+        alert("Erro ao listar saídas: " + err);
+      }
+    }
+
+    async function testarDB2() {
+      try {
+        const resp = await fetch("/api/testar_db2", { method: "POST" });
+        const data = await resp.json();
+        alert(JSON.stringify(data, null, 2));
+      } catch (err) {
+        console.error(err);
+        alert("Erro ao testar DB2: " + err);
+      }
+    }
+
+    async function previewCadunico() {
+      const fileInput = document.getElementById("cadunico-file");
+      if (!fileInput.files || !fileInput.files[0]) {
+        alert("Selecione um arquivo (Parquet/CSV/XLSX) para pré-visualizar.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", fileInput.files[0]);
+      formData.append("preview_rows", "10");
+
+      cadStatus.textContent = "Enviando arquivo para pré-visualização…";
+
+      try {
+        const resp = await fetch("/api/cadunico/fast_preview", {
+          method: "POST",
+          body: formData
+        });
+        const data = await resp.json();
+
+        if (!data.ok) {
+          cadStatus.textContent = "Erro na pré-visualização: " + (data.error || "desconhecido");
+          cadPreview.textContent = "(erro ao ler o arquivo enviado)";
+          return;
+        }
+
+        cadStatus.textContent = "Arquivo enviado e pré-visualizado com sucesso.";
+        const preview = data.preview || {};
+        const cols = preview.columns || [];
+        const rows = preview.rows || [];
+
+        let txt = "";
+        txt += "Colunas: " + cols.join(" | ") + "\n";
+        txt += "------------------------------\n";
+        rows.forEach((r) => {
+          const vals = cols.map((c) => (r[c] !== undefined ? String(r[c]) : ""));
+          txt += vals.join(" | ") + "\n";
+        });
+
+        cadPreview.textContent = txt || "(sem linhas para exibir)";
+      } catch (err) {
+        console.error(err);
+        cadStatus.textContent = "Erro ao enviar arquivo para pré-visualização.";
+        cadPreview.textContent = "(erro de rede)";
+      }
+    }
+
+    // =========================
+    //   PAINEL / MODAL CPF
+    // =========================
+    function updateCpfDiagnosticFromMetrics(m) {
+      const invalidDocs = m.invalid_cpf_docs_count;
+      const invalidCad = m.invalid_cpf_cad_count;
+      const invalidCsv = m.invalid_cpf_cad_csv;
+      const sampleNames = m.invalid_cpf_cad_sample_names;
+
+      let docsTxt = "não informado";
+      if (typeof invalidDocs === "number") {
+        docsTxt = invalidDocs.toLocaleString("pt-BR");
+      }
+
+      let cadTxt = "não informado";
+      if (typeof invalidCad === "number") {
+        cadTxt = invalidCad.toLocaleString("pt-BR");
+      }
+
+      cpfSummaryLines.innerHTML =
+        `Documentos alunos (DB2) inválidos: <strong>${docsTxt}</strong><br>` +
+        `CadÚnico inválidos (sem dígitos de CPF): <strong>${cadTxt}</strong>`;
+
+      if (invalidCsv && typeof invalidCsv === "string") {
+        const encodedPath = encodeURIComponent(invalidCsv);
+        const url = `/api/download?path=${encodedPath}`;
+
+        cpfCsvLinkText.innerHTML =
+          `CSV detalhado de inválidos (CadÚnico):<br>` +
+          `<a href="${url}" target="_blank">${invalidCsv}</a>`;
+      } else {
+        cpfCsvLinkText.innerHTML =
+          `CSV detalhado de inválidos (CadÚnico):<br>` +
+          `<span class="small-muted">ainda não informado pelo backend nesta sessão.</span>`;
+      }
+
+      // Amostra de nomes
+      cpfSampleList.innerHTML = "";
+      if (Array.isArray(sampleNames) && sampleNames.length > 0) {
+        const maxNames = 80;
+        sampleNames.slice(0, maxNames).forEach((name) => {
+          const li = document.createElement("li");
+          li.textContent = name;
+          cpfSampleList.appendChild(li);
+        });
+        if (sampleNames.length > maxNames) {
+          const li = document.createElement("li");
+          li.className = "small-muted";
+          li.textContent = `(+ ${sampleNames.length - maxNames} nomes adicionais não exibidos aqui)`;
+          cpfSampleList.appendChild(li);
+        }
+      } else {
+        const li = document.createElement("li");
+        li.className = "small-muted";
+        li.textContent = "Nenhuma amostra de nomes foi informada pelo backend.";
+        cpfSampleList.appendChild(li);
+      }
+    }
+
+    function openCpfModal() {
+      cpfModalBackdrop.classList.add("show");
+    }
+
+    function closeCpfModal() {
+      cpfModalBackdrop.classList.remove("show");
+    }
+
+    // =========================
+    //   EVENTOS
+    // =========================
+    document.getElementById("btn-processar").addEventListener("click", startProcessamento);
+    document.getElementById("btn-outputs").addEventListener("click", listarSaidas);
+    document.getElementById("btn-test-db2").addEventListener("click", testarDB2);
+    document.getElementById("btn-preview-cad").addEventListener("click", previewCadunico);
+    document.getElementById("btn-clear-log").addEventListener("click", () => {
+      logOutput.textContent = "Log limpo.";
+    });
+
+    cpfModalOpenBtn.addEventListener("click", openCpfModal);
+    cpfModalCloseBtn.addEventListener("click", closeCpfModal);
+    cpfModalBackdrop.addEventListener("click", (ev) => {
+      if (ev.target === cpfModalBackdrop) closeCpfModal();
+    });
+  </script>
+</body>
+
+</html>

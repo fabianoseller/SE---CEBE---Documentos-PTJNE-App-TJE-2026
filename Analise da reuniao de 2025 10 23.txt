@@ -1,0 +1,63 @@
+
+Base alunos(ISE): - Matriculados e Infrequentes de turmas com calendário atual
+- Tipos de Ensino: R2, I2 e E2
+- Fonte: extração SQL banco 
+
+ROTINA MANUAL o contexto de cartões, Rotina Manual serve pra incluir cartões a serem gerados identificados pelo Atendimento
+- Fonte: excel atualizado pelo
+
+CadÚnico
+
+ETAPAS - Cruzar dados pessoais da base de alunos com dados pessoais da base do CadÚnico através das chaves da PROCERGS
+- Após cruzamento, obtém relação Matrícula/CPF de todos os mapeados automáticos
+
+- A partir da nova base de Matrículas/CPF, inclui informações pessoais e familiares do ISE e do CadÚnico
+
+- Incluir relações Matrícula/CPF da Rotina Manual aos mapeados automáticos
+- Remover matrículas duplicadas, dando prioridade pro CPF encontrado de maneira automática
+
+- A partir da nova base de Matrículas/CPF, inclui informações pessoais e familiares do ISE e do CadÚnico
+
+
+
+DATA Matrículas Removidas CPF 
+Duplicado e Nome Dif.xlsx - Alunos que foram identificados para um mesmo CPF como se fosse próprio mas é duplicado
+- Mantém quando nome bater ISE e CAD
+- Uma matrícula por linha
+
+DATA_TJE_Base_Acumulada_Estudantes
+_Beneficiários_MES_ANO.xlsx
+- Utiliza  acumulado da última base para atualizar todos mapeados históricos TJE
+- Caso uma matrícula passe a ser relacionada a um CPF diferente, mantém mais recente
+- Uma matrícula por linha
+
+
+
+DATA_TJE_Base_Beneficiários_
+Inativos_MES_ANO - Utiliza última base acumulada de mapeados e inclui todos mapeados na base acumulada passada que não aparecem na base ativa atual
+- Uma matrícula por linha 
+
+
+
+
+
+DATA_TJE_Base_Beneficiários_
+Mapeados_MES_ANO
+
+- Base de mapeados atual
+- Uma matrícula por linha
+
+ CPFs ÚNICOS DATA_TJE_Base_Acumulada
+_Cartões_Ativos_MES_ANO Base de mapeados atual
+- Um CPF por linha
+- Base no formato enviado para o Banrisul
+
+
+PFs ÚNICOS DATA_TJE_Base_
+Beneficiários_Mapeados_MES_ANO Utiliza acumulado da última base para atualizar todos mapeados históricos TJE
+- Um CPF por linha
+- Base no formato enviado para o Banrisul
+
+
+
+

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>TJE Control • Consolidação CPF</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+<style>
+:root {
+  --bg:#0f172a;
+  --card:#020617;
+  --fg:#e5e7eb;
+  --muted:#94a3b8;
+  --accent:#22c55e;
+  --border:#1e293b;
+}
+
+body {
+  margin:0;
+  font-family:system-ui,Segoe UI,sans-serif;
+  background:var(--bg);
+  color:var(--fg);
+}
+
+header {
+  padding:14px 20px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+main {
+  display:grid;
+  grid-template-columns:2fr 1fr;
+  gap:16px;
+  padding:16px;
+}
+
+.card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:14px;
+}
+
+button {
+  background:var(--accent);
+  border:none;
+  padding:8px 14px;
+  border-radius:8px;
+  font-weight:600;
+  cursor:pointer;
+}
+
+input {
+  background:transparent;
+  border:1px solid var(--border);
+  color:var(--fg);
+  padding:6px;
+  border-radius:6px;
+}
+
+.progress {
+  height:12px;
+  background:#020617;
+  border-radius:8px;
+  overflow:hidden;
+  margin-top:6px;
+}
+
+.progress > div {
+  height:100%;
+  background:var(--accent);
+  width:0%;
+  transition:width .4s ease;
+}
+
+pre {
+  background:#000;
+  color:#0f0;
+  height:260px;
+  overflow:auto;
+  padding:8px;
+  font-size:11px;
+}
+
+.small { font-size:11px; color:var(--muted); }
+</style>
+</head>
+
+<body>
+
+<header>
+  <strong>TJE Control</strong>
+  <span class="small">Consolidação CPF • Monitoramento em tempo real</span>
+</header>
+
+<main>
+
+<!-- ESQUERDA -->
+<section class="card">
+
+<h3>Parâmetros</h3>
+<div style="display:flex;gap:10px;align-items:flex-end">
+  <div>
+    <label class="small">MESANO</label><br>
+    <input id="mesano" placeholder="YYYYMM">
+  </div>
+  <button onclick="iniciar()">▶ Iniciar processamento</button>
+</div>
+
+<hr style="margin:14px 0;border-color:var(--border)">
+
+<h3>Status geral</h3>
+<div><b>Status:</b> <span id="status">—</span></div>
+<div><b>Fase:</b> <span id="fase">—</span></div>
+<div><b>Subfase:</b> <span id="subfase">—</span></div>
+
+<div class="progress"><div id="faseBar"></div></div>
+<div class="small" id="faseTxt"></div>
+
+<hr style="margin:14px 0;border-color:var(--border)">
+
+<h3>📦 Progresso por chunk</h3>
+<div><b>Chunk:</b> <span id="chunk">—</span></div>
+<div><b>Progresso:</b> <span id="pct">—</span></div>
+<div><b>ETA:</b> <span id="eta">—</span></div>
+
+<div class="progress"><div id="chunkBar"></div></div>
+
+</section>
+
+<!-- DIREITA -->
+<section class="card">
+<h3>Logs</h3>
+<pre id="logs">(aguardando)</pre>
+</section>
+
+</main>
+
+<script>
+let sessionId = null;
+let chunkTimes = [];
+
+async function iniciar(){
+  const mesano = document.getElementById("mesano").value.trim();
+  if(!/^\d{6}$/.test(mesano)){ alert("MESANO inválido"); return; }
+
+  const r = await fetch("/api/processar",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify({ mesano, params:{ chunk_size:5000 } })
+  });
+  const d = await r.json();
+  if(!d.ok){ alert(d.error); return; }
+
+  sessionId = d.session_id;
+  poll();
+}
+
+async function poll(){
+  if(!sessionId) return;
+
+  const m = await fetch(`/api/metrics/${sessionId}`).then(r=>r.json());
+  if(m.ok){
+    const x = m.metrics;
+
+    document.getElementById("status").textContent = x.status;
+    document.getElementById("fase").textContent = x.fase ?? "—";
+    document.getElementById("subfase").textContent = x.subfase ?? "—";
+
+    // FASE (0–9)
+    const fasePct = x.fase ? Math.min((x.fase/9)*100,100) : 0;
+    document.getElementById("faseBar").style.width = fasePct+"%";
+    document.getElementById("faseTxt").textContent =
+      `Fase ${x.fase || 0}/9 • ${fasePct.toFixed(1)}%`;
+
+    // CHUNKS
+    if(x.chunk_atual && x.total_chunks){
+      const pct = (x.chunk_atual/x.total_chunks)*100;
+      document.getElementById("chunk").textContent =
+        `${x.chunk_atual}/${x.total_chunks}`;
+      document.getElementById("pct").textContent =
+        pct.toFixed(1)+"%";
+      document.getElementById("chunkBar").style.width = pct+"%";
+
+      // ETA simples
+      const now = Date.now();
+      if(!chunkTimes[x.chunk_atual]) chunkTimes[x.chunk_atual]=now;
+      if(chunkTimes.length>2){
+        const deltas=[];
+        for(let i=1;i<chunkTimes.length;i++){
+          if(chunkTimes[i] && chunkTimes[i-1])
+            deltas.push((chunkTimes[i]-chunkTimes[i-1])/1000);
+        }
+        const avg = deltas.reduce((a,b)=>a+b,0)/deltas.length;
+        const rem = (x.total_chunks - x.chunk_atual)*avg;
+        document.getElementById("eta").textContent =
+          `${Math.round(rem)}s`;
+      }
+    }
+  }
+
+  const l = await fetch(`/api/logs/${sessionId}`).then(r=>r.json());
+  if(l.ok) document.getElementById("logs").textContent = l.logs.join("\n");
+
+  if(m.metrics?.status !== "done")
+    setTimeout(poll, 3000);
+}
+</script>
+
+</body>
+</html>
