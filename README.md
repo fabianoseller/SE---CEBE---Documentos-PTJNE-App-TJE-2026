@@ -386,5 +386,87 @@ O principal limitador atual não é o código, mas:
 
 
 
+# 🧪 ROTEIRO DE TESTES – PROJETO DICMS
+
+---
+
+## 🎯 1. Objetivo
+
+Garantir que o sistema (backend + frontend) está:
+
+- Processando corretamente os dados
+- Aplicando corretamente as regras de negócio
+- Gerando o layout DICMS válido
+- Mantendo consistência com o script oficial
+
+---
+
+## 🧱 2. Escopo
+
+### Backend (app.py / pipeline)
+- Leitura de dados
+- Integração CadÚnico
+- Aplicação de regras
+- Geração de arquivos
+
+### Frontend
+- Upload / execução
+- Visualização de métricas
+- Download de arquivos
+
+---
+
+## 🧪 3. Tipos de Teste
+
+| Tipo | Objetivo |
+|------|--------|
+| Unitário | Funções isoladas |
+| Integração | Pipeline completo |
+| Regressão | Comparação com script |
+| Validação de dados | Qualidade dos dados |
+| UI | Interface funcional |
+
+---
+
+## 🔹 4. Testes Backend
+
+---
+
+### ✅ 4.1 Teste de Leitura de Dados
+
+**Objetivo:** Validar leitura do DB2 e CSV
+
+**Entrada:**
+- Base de alunos
+- Arquivo CadÚnico
+
+**Validação:**
+
+assert len(df_alunos) > 0
+assert "CPF" in df_alunos.columns
+
+# ESTRUTURA DE TESTES
+
+/project
+│
+├── app/
+│   ├── app.py
+│   ├── pipeline.py
+│
+├── tests/
+│   ├── test_pipeline.py
+│   ├── test_regressao.py
+│   ├── test_dados.py
+│
+├── outputs/
+│
+├── requirements.txt
+├── pytest.ini
+├── .github/
+│   └── workflows/
+│       └── ci.yml
+
+
+
 
 
