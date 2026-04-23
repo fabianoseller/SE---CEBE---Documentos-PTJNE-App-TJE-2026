@@ -1,3 +1,5 @@
+<img width="1908" height="937" alt="TELA1" src="https://github.com/user-attachments/assets/957a6567-80ab-4710-b7f6-6dbe8a18daa6" />
+<img width="1894" height="759" alt="TELA2" src="https://github.com/user-attachments/assets/e2930043-221b-4974-b288-77ac89fc12e1" />
 # TJE Control • Cartões  
 ## Documentação Oficial do Projeto
 
