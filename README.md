@@ -466,6 +466,240 @@ assert "CPF" in df_alunos.columns
 │   └── workflows/
 │       └── ci.yml
 
+# ATUALIZAÇÃO 24/04/2026 #
+
+
+# Projeto DICMS – Documentação Técnica e Executiva
+**Data:** 23/04/2024  
+**Status:** Pronto para uso assistido  
+**Classificação:** Técnico / Executivo / Auditável
+
+---
+
+## 1. 🎯 Objetivo do Projeto
+
+Gerar o **layout oficial de carga de beneficiários do DICMS**, a partir da integração de múltiplas fontes de dados, assegurando aderência às regras do **script oficial**, rastreabilidade e confiabilidade do resultado.
+
+**Fontes integradas:**
+- Base de alunos (DB2)
+- CadÚnico (CSV massivo)
+- Dados complementares (ISE)
+
+---
+
+## 2. 🧱 Arquitetura do Pipeline
+
+O pipeline foi estruturado em **cinco fases principais**, permitindo evolução incremental, validação contínua e rastreabilidade dos resultados.
+
+### 🔹 Fase 1 – Leitura DB2
+- Extração de alunos
+- Normalização de:
+  - CPF
+  - Nome
+  - Nome da mãe
+- Volume médio: ~249.000 registros
+
+### 🔹 Fase 2 – Integração CadÚnico
+- Leitura de CSV massivo
+- Normalização de:
+  - CPF
+  - Nome
+  - Nome da mãe
+- Identificação de famílias (`COD_FAM`)
+
+### 🔹 Fase 3 – Chaves de Mapeamento
+Aplicação sequencial de regras de vinculação:
+- CPF direto
+- Nome + nome da mãe
+- Nome + data de nascimento
+- Combinações adicionais
+
+**Resultado:**
+- ~144.000 registros mapeados
+- ~104.000 registros não mapeados inicialmente
+
+### 🔹 Fase 4 – Regras de Negócio
+**Regra de Renda**
+- Corte: renda média ≤ 660
+- Resultado:
+  - ~94.000 elegíveis
+  - ~50.000 removidos
+
+**Regra de Município**
+- Ajustes via base ISE
+- Sem impacto relevante de perda
+
+### 🔹 Fase 5 – Geração do Layout DICMS
+Campos finais gerados:
+- `COD_CPF`
+- `NOME_BENEFICIARIO`
+- `DT_NASC_BENEFICIARIO`
+- `NOME_MAE_BENEFICIARIO`
+- `COD_MUNIC_IBGE`
+- Endereço completo
+- Telefones
+- E-mail
+- `VLR_RENDA_MEDIA`
+- `ORIGEM_CPF`
+- `CPF_RESP`
+
+**Total final:** ~94.000 registros
+
+---
+
+## 3. 📊 Evolução do Projeto
+
+| Etapa                  | Quantidade |
+|------------------------|------------|
+| Script oficial         | ~96.000    |
+| Primeira versão do app | ~94.000    |
+| Diferença inicial      | 5.193      |
+| Diferença atual        | ~2.071     |
+
+✅ Observa-se **redução significativa das divergências**, indicando maturidade do pipeline e convergência com o script oficial.
+
+---
+
+## 4. ⚠️ Principais Problemas Encontrados
+
+### 4.1 Problemas de Encoding
+**Problema:**
+- Acentuação corrompida (ex.: Ã, ç)
+
+**Solução:**
+- Padronização do CSV final em `UTF-8-SIG`
+
+---
+
+### 4.2 Inconsistência de CPF
+**Problemas identificados:**
+- CPFs inválidos
+- CPFs incompletos
+- CPFs zerados
+- Formatação irregular
+
+**Impacto:**
+- Falhas de match
+- Divergências em relação ao script
+- Descarte de registros
+
+---
+
+### 4.3 Responsável Familiar (Problema Principal)
+**Problemas encontrados:**
+- Escolha incorreta do responsável familiar
+- Uso de CPF errado dentro do núcleo familiar
+- Diferenças de critério entre script e aplicação
+
+**Impacto:**
+- Divergências no campo `ORIGEM_CPF`
+- Diferença entre outputs finais
+
+---
+
+### 4.4 Estrutura do CadÚnico
+**Problemas:**
+- CSV muito grande
+- Colunas inconsistentes
+- Parsing instável
+
+**Impacto:**
+- Erros de leitura
+- Perda de dados
+- Dificuldade de processamento
+
+---
+
+### 4.5 Ordem do Pipeline
+**Problema recorrente:**
+- Aplicação de regras em momento inadequado
+
+**Impacto:**
+- Sobrescrita de CPF
+- Inconsistência final
+- Resultados divergentes
+
+---
+
+## 5. 📈 Situação Atual
+
+**Métricas finais:**
+- 94.193 CPFs em comum
+- 2.071 apenas no script
+- 396 apenas na aplicação
+
+**Qualidade atual:**
+- ~97% de aderência ao script oficial
+- Pipeline funcional
+- Layout válido para uso
+
+---
+
+## 6. 🚧 Dívida Técnica Identificada
+
+**🔴 Alta**
+- Regra de responsável familiar ainda sensível a dados inconsistentes
+- Forte dependência da qualidade do CadÚnico
+
+**🟠 Média**
+- Código duplicado em partes do pipeline
+- Falta de centralização das regras de CPF
+
+**🟡 Baixa**
+- Logs pouco estruturados
+- Ausência de testes automatizados
+
+---
+
+## 7. 🧠 Conclusão Técnica
+
+O sistema atingiu **nível adequado de maturidade operacional**, apresentando:
+- Processamento completo
+- Resultado consistente
+- Diferença residual explicável por dados
+
+---
+
+## 8. 🚀 Recomendações Futuras
+- Criar validação automática de CPF
+- Centralizar regra de responsável familiar
+- Criar testes comparativos automatizados
+- Versionar regras de negócio
+- Evoluir para pipeline incremental
+
+---
+
+## 9. 📎 Artefatos Gerados
+- `DICMS_Layout_Carga_Beneficiarios_*.csv`
+- Comparação Script × Aplicação
+- `DEBUG_NAO_MAPEADOS`
+- `DEBUG_DICMS`
+- `ANALISE_FINAL`
+
+---
+
+## 10. 📌 Consideração Final
+
+O principal limitador atual do projeto **não é tecnológico**, mas sim a **qualidade e consistência dos dados de origem**.
+
+---
+
+## 11. 🧩 Status do Projeto
+✔ Pipeline funcional  
+✔ Resultado auditável  
+✔ Diferença controlada  
+✔ Pronto para uso assistido  
+
+---
+
+## 12. ✅ Resumo Executivo (Ultraexecutivo)
+
+- **Resultado:** ~97% de aderência ao script oficial, com divergências significativamente reduzidas.
+- **Esforço:** Concentrado em integração, mapeamento e regras de negócio, refletindo limitações dos dados externos.
+- **Conclusão:** Sistema confiável, defensável e adequado ao uso institucional dentro do cenário real de dados.
+
+---
+
 
 
 
